@@ -1,9 +1,8 @@
 version: '3.8'
 
 services:
-  app:
-    image: craftcms/image:8.2-fpm
-    container_name: ${COMPOSE_PROJECT_NAME:-craft}-app
+  php-fpm:
+    image: ghcr.io/craftcms/image:8.2
     restart: unless-stopped
     working_dir: /app
     volumes:
@@ -26,7 +25,6 @@ services:
 
   web:
     image: nginx:stable-alpine
-    container_name: ${COMPOSE_PROJECT_NAME:-craft}-web
     restart: unless-stopped
     ports:
       - "8080:80"
