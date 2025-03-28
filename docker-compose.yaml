@@ -51,5 +51,4 @@ networks:
 
 # Volumes
 volumes:
-  - ../:/app
-  - craft_storage:/app/storage
+  craft_storage:
