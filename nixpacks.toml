@@ -1,5 +1,3 @@
-providers = ["php"]
-
 [phases.setup]
 pkgs = [
     "php82",
@@ -24,6 +22,8 @@ cmds = [
 
 [phases.build]
 cmds = [
+    "composer install --no-dev --no-progress --optimize-autoloader",
+    "npm install",
     "mkdir -p /var/log/supervisor", # Für Supervisor-Logs
     "mkdir -p /app/storage/logs", # Für Craft Logs
     "mkdir -p /app/storage/runtime", # Für Craft Runtime-Dateien (Cache, etc.)
@@ -46,10 +46,8 @@ cmds = [
 ]
 
 [start]
-# Verwendet unser Start-Skript, das Supervisor startet
 cmd = "/assets/start.sh"
 
-# --- Eingebettete Konfigurationsdateien und Skripte ---
 [staticAssets]
 
 "start.sh" = '''
