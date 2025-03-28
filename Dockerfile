@@ -1,18 +1,7 @@
 ARG PHP_VERSION=8.2
-FROM php:${PHP_VERSION}-fpm-alpine
+FROM ghcr.io/craftcms/image:${PHP_VERSION}
 
 WORKDIR /app
-
-RUN apk update && apk add --no-cache \
-    git \
-    curl \
-    libzip-dev \
-    libpng-dev \
-    icu-dev \
-    zlib-dev \
-    unzip \
-    oniguruma-dev \
-    && docker-php-ext-install pdo pdo_mysql intl zip
 
 # Composer installieren
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
