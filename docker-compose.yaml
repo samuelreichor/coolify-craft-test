@@ -5,3 +5,15 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/app
+    environment:
+      CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production} # 'dev', 'staging', 'production'
+      CRAFT_DB_DRIVER: ${CRAFT_DB_DRIVER:-mysql}
+      CRAFT_DB_SERVER: ${CRAFT_DB_SERVER}
+      CRAFT_DB_PORT: ${CRAFT_DB_PORT}
+      CRAFT_DB_DATABASE: ${CRAFT_DB_DATABASE}
+      CRAFT_DB_USER: ${CRAFT_DB_USER}
+      CRAFT_DB_PASSWORD: ${CRAFT_DB_PASSWORD}
+      CRAFT_DB_SCHEMA: ${CRAFT_DB_SCHEMA:-public}
+      CRAFT_SECURITY_KEY: ${CRAFT_SECURITY_KEY}
+      PRIMARY_SITE_URL: ${CRAFT_PRIMARY_SITE_URL
+      CRAFT_ALLOW_ADMIN_CHANGES: ${CRAFT_ALLOW_ADMIN_CHANGES:-false}
