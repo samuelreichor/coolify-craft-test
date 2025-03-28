@@ -1,27 +1,118 @@
-services: 
+version: '3.8'
 
-  nginx:
-    container_name: nginx
-    restart: unless-stopped
-    volumes:
-      - ./:/app
+services:
+  # PHP Service (Craft CMS Application)
+  app:
     build:
-      context: ./nginx
+      context: ./php # Pfad zum Dockerfile für PHP
+      # Optional: Build-Argumente, z.B. PHP-Version
+      # args:
+      #   PHP_VERSION: '8.2'
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-app
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      # Mountet den gesamten Projektcode in den Container
+      - .:/app
+      # Persistenter Volume für Craft Storage (Logs, Backups etc.)
+      - craft_storage:/app/storage
+      # Persistenter Volume für Composer Cache (optional, beschleunigt Builds)
+      # - composer_cache:/root/.composer/cache
+      # WICHTIG: Wenn du 'vendor' nicht im Git hast (empfohlen),
+      # dann MUSS dieser Volume auskommentiert oder entfernt werden,
+      # damit der im Dockerfile installierte 'vendor'-Ordner genutzt wird.
+      # Wenn du 'vendor' im Git hast, kannst du diesen Mount verwenden:
+      # - ./vendor:/app/vendor
+    environment:
+      # --- Craft CMS Umgebungsvariablen ---
+      # Diese sollten idealerweise über Coolify Secrets oder eine .env Datei gesetzt werden
+      # Siehe .env.example unten
+      DB_DRIVER: ${DB_DRIVER:-pgsql}
+      DB_SERVER: ${DB_SERVER:-db} # Name des DB-Service in diesem Compose-File
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-craftdb}
+      DB_USER: ${DB_USER:-craftuser}
+      DB_PASSWORD: ${DB_PASSWORD:-craftpassword} # Sichereres Passwort verwenden!
+      DB_SCHEMA: ${DB_SCHEMA:-public}
+      SECURITY_KEY: ${SECURITY_KEY} # SEHR WICHTIG: Eindeutigen, sicheren Schlüssel generieren!
+      PRIMARY_SITE_URL: ${PRIMARY_SITE_URL:-http://localhost:8080} # Passe dies an deine Coolify Domain an
+      ENVIRONMENT: ${ENVIRONMENT:-dev} # 'dev', 'staging', 'production'
+      ALLOW_ADMIN_CHANGES: ${ALLOW_ADMIN_CHANGES:-true}
+      DISABLE_CACHING: ${DISABLE_CACHING:-false}
+      # --- Optional: Redis Konfiguration ---
+      REDIS_HOSTNAME: ${REDIS_HOSTNAME:-redis} # Name des Redis-Service
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      # Füge hier weitere benötigte Craft-Umgebungsvariablen hinzu
+      # --- PHP Konfiguration ---
+      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-256M}
+      PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-60}
+      PHP_UPLOAD_MAX_FILESIZE: ${PHP_UPLOAD_MAX_FILESIZE:-64M}
+      PHP_POST_MAX_SIZE: ${PHP_POST_MAX_SIZE:-64M}
+    depends_on:
+      - db
+      - redis # Entfernen, wenn Redis nicht verwendet wird
+    networks:
+      - craftnet
+
+  # Nginx Service (Webserver)
+  web:
+    build:
+      context: ./nginx # Pfad zum Dockerfile für Nginx
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-web
+    restart: unless-stopped
     ports:
-      - "8080:80"
-    networks:
-      - app-network
-      
-  php:
-    container_name: php
-    restart: unless-stopped
+      # Exponiert Port 8080 des Hosts und leitet ihn an Port 80 im Container weiter
+      # Coolify wird diesen Port automatisch erkennen und verwalten
+      - "${CRAFT_PORT:-8080}:80"
     volumes:
-      - ./:/app
-    build:
-      context: ./php
+      # Mountet den Projektcode, damit Nginx auf statische Dateien zugreifen kann
+      - .:/app
+    depends_on:
+      - app
     networks:
-      - app-network
+      - craftnet
 
+  # Datenbank Service (PostgreSQL)
+  db:
+    image: postgres:15-alpine # Oder mariadb:latest für MySQL/MariaDB
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-craftdb}
+      POSTGRES_USER: ${DB_USER:-craftuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-craftpassword} # Muss mit 'app' Service übereinstimmen
+      # Für MariaDB wären es:
+      # MARIADB_DATABASE: ${DB_DATABASE:-craftdb}
+      # MARIADB_USER: ${DB_USER:-craftuser}
+      # MARIADB_PASSWORD: ${DB_PASSWORD:-craftpassword}
+      # MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword} # Setze ein sicheres Root-Passwort
+    volumes:
+      # Persistenter Volume für Datenbankdaten
+      - db_data:/var/lib/postgresql/data
+      # Für MariaDB:
+      # - db_data:/var/lib/mysql
+    networks:
+      - craftnet
+    # Exponiere den Port nur, wenn du direkt von deinem Host darauf zugreifen musst (Debugging)
+    # ports:
+    #   - "5432:5432" # Für PostgreSQL
+    #   - "3306:3306" # Für MariaDB
+
+  # Redis Service (Optional, für Caching)
+  redis:
+    image: redis:alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-redis
+    restart: unless-stopped
+    networks:
+      - craftnet
+
+# Netzwerke
 networks:
-  app-network:
+  craftnet:
     driver: bridge
+
+# Volumes
+volumes:
+  db_data: # Hält die Datenbankdaten persistent
+  craft_storage: # Hält die Craft Storage-Daten persistent
+  # composer_cache: # Optionaler Cache für Composer
