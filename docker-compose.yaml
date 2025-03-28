@@ -13,18 +13,20 @@ services:
       - .:/app
       - craft_storage:/app/storage
     environment:
-      CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production} # 'dev', 'staging', 'production'
+      CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production}
       CRAFT_DB_DRIVER: ${CRAFT_DB_DRIVER:-mysql}
-      CRAFT_DB_SERVER: ${CRAFT_DB_SERVER}
-      CRAFT_DB_PORT: ${CRAFT_DB_PORT}
-      CRAFT_DB_DATABASE: ${CRAFT_DB_DATABASE}
-      CRAFT_DB_USER: ${CRAFT_DB_USER}
-      CRAFT_DB_PASSWORD: ${CRAFT_DB_PASSWORD}
+      CRAFT_DB_SERVER: db                            # <-- Service-Name des DB-Containers
+      CRAFT_DB_PORT: 3306
+      CRAFT_DB_DATABASE: craft
+      CRAFT_DB_USER: craft
+      CRAFT_DB_PASSWORD: secret
       CRAFT_DB_SCHEMA: ${CRAFT_DB_SCHEMA:-public}
       CRAFT_SECURITY_KEY: ${CRAFT_SECURITY_KEY}
       CRAFT_APP_ID: ${CRAFT_APP_ID}
       PRIMARY_SITE_URL: ${CRAFT_PRIMARY_SITE_URL}
       CRAFT_ALLOW_SUPERUSER: ${CRAFT_ALLOW_SUPERUSER:-1}
+    depends_on:
+      - db
     networks:
       - craftnet
 
@@ -44,6 +46,23 @@ services:
     networks:
       - craftnet
 
+  # MySQL Datenbank-Service
+  db:
+    image: mysql:8
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    volumes:
+      - craft_db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: craft
+      MYSQL_USER: craft
+      MYSQL_PASSWORD: secret
+    networks:
+      - craftnet
+
 # Netzwerke
 networks:
   craftnet:
@@ -52,3 +71,4 @@ networks:
 # Volumes
 volumes:
   craft_storage:
+  craft_db_data:
