@@ -4,65 +4,40 @@ services:
   # PHP Service (Craft CMS Application)
   app:
     build:
-      context: ./php # Pfad zum Dockerfile für PHP
-      # Optional: Build-Argumente, z.B. PHP-Version
-      # args:
-      #   PHP_VERSION: '8.2'
+      context: ./php
+      dockerfile: Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-craft}-app
     restart: unless-stopped
     working_dir: /app
     volumes:
-      # Mountet den gesamten Projektcode in den Container
       - .:/app
-      # Persistenter Volume für Craft Storage (Logs, Backups etc.)
       - craft_storage:/app/storage
-      # Persistenter Volume für Composer Cache (optional, beschleunigt Builds)
-      # - composer_cache:/root/.composer/cache
-      # WICHTIG: Wenn du 'vendor' nicht im Git hast (empfohlen),
-      # dann MUSS dieser Volume auskommentiert oder entfernt werden,
-      # damit der im Dockerfile installierte 'vendor'-Ordner genutzt wird.
-      # Wenn du 'vendor' im Git hast, kannst du diesen Mount verwenden:
-      # - ./vendor:/app/vendor
     environment:
-      # --- Craft CMS Umgebungsvariablen ---
-      # Diese sollten idealerweise über Coolify Secrets oder eine .env Datei gesetzt werden
-      # Siehe .env.example unten
-      DB_DRIVER: ${DB_DRIVER:-pgsql}
-      DB_SERVER: ${DB_SERVER:-db} # Name des DB-Service in diesem Compose-File
-      DB_PORT: ${DB_PORT:-5432}
-      DB_DATABASE: ${DB_DATABASE:-craftdb}
-      DB_USER: ${DB_USER:-craftuser}
-      DB_PASSWORD: ${DB_PASSWORD:-craftpassword} # Sichereres Passwort verwenden!
-      DB_SCHEMA: ${DB_SCHEMA:-public}
-      SECURITY_KEY: ${SECURITY_KEY} # SEHR WICHTIG: Eindeutigen, sicheren Schlüssel generieren!
-      PRIMARY_SITE_URL: ${PRIMARY_SITE_URL:-http://localhost:8080} # Passe dies an deine Coolify Domain an
-      ENVIRONMENT: ${ENVIRONMENT:-dev} # 'dev', 'staging', 'production'
-      ALLOW_ADMIN_CHANGES: ${ALLOW_ADMIN_CHANGES:-true}
-      DISABLE_CACHING: ${DISABLE_CACHING:-false}
-      # --- Optional: Redis Konfiguration ---
-      REDIS_HOSTNAME: ${REDIS_HOSTNAME:-redis} # Name des Redis-Service
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      # Füge hier weitere benötigte Craft-Umgebungsvariablen hinzu
-      # --- PHP Konfiguration ---
-      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-256M}
-      PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-60}
-      PHP_UPLOAD_MAX_FILESIZE: ${PHP_UPLOAD_MAX_FILESIZE:-64M}
-      PHP_POST_MAX_SIZE: ${PHP_POST_MAX_SIZE:-64M}
+      CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production} # 'dev', 'staging', 'production'
+      CRAFT_DB_DRIVER: ${CRAFT_DB_DRIVER:-mysql}
+      CRAFT_DB_SERVER: ${CRAFT_DB_SERVER}
+      CRAFT_DB_PORT: ${CRAFT_DB_PORT}
+      CRAFT_DB_DATABASE: ${CRAFT_DB_DATABASE}
+      CRAFT_DB_USER: ${CRAFT_DB_USER}
+      CRAFT_DB_PASSWORD: ${CRAFT_DB_PASSWORD}
+      CRAFT_DB_SCHEMA: ${CRAFT_DB_SCHEMA:-public}
+      CRAFT_SECURITY_KEY: ${CRAFT_SECURITY_KEY}
+      CRAFT_APP_ID: ${CRAFT_APP_ID}
+      PRIMARY_SITE_URL: ${CRAFT_PRIMARY_SITE_URL}
+      CRAFT_ALLOW_SUPERUSER: ${CRAFT_ALLOW_SUPERUSER:-1}
     networks:
       - craftnet
 
   # Nginx Service (Webserver)
   web:
     build:
-      context: ./nginx # Pfad zum Dockerfile für Nginx
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-craft}-web
     restart: unless-stopped
     ports:
-      # Exponiert Port 8080 des Hosts und leitet ihn an Port 80 im Container weiter
-      # Coolify wird diesen Port automatisch erkennen und verwalten
       - "${CRAFT_PORT:-8080}:80"
     volumes:
-      # Mountet den Projektcode, damit Nginx auf statische Dateien zugreifen kann
       - .:/app
     depends_on:
       - app
@@ -76,6 +51,4 @@ networks:
 
 # Volumes
 volumes:
-  db_data: # Hält die Datenbankdaten persistent
-  craft_storage: # Hält die Craft Storage-Daten persistent
-  # composer_cache: # Optionaler Cache für Composer
+  craft_storage:
