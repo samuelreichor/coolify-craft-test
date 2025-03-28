@@ -16,7 +16,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_SCHEMA: ${DB_SCHEMA:-public}
       DB_TABLE_PREFIX: ${DB_TABLE_PREFIX:-}
-      CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT}
+      CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production}
       CRAFT_SECURITY_KEY: ${CRAFT_SECURITY_KEY}
       PRIMARY_SITE_URL: ${PRIMARY_SITE_URL}
 
@@ -32,7 +32,7 @@ services:
       - ./:/app
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - app
+      - php-fpm
     networks:
       - app-network
 
