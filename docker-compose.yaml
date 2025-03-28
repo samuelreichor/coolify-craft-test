@@ -15,7 +15,7 @@ services:
     environment:
       CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production}
       CRAFT_DB_DRIVER: ${CRAFT_DB_DRIVER:-mysql}
-      CRAFT_DB_SERVER: db                            # <-- Service-Name des DB-Containers
+      CRAFT_DB_SERVER: db
       CRAFT_DB_PORT: 3306
       CRAFT_DB_DATABASE: craft
       CRAFT_DB_USER: craft
