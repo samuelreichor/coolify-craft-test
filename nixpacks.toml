@@ -10,7 +10,7 @@ pkgs = [
     "php82Extensions.simplexml", "php82Extensions.tokenizer", "php82Extensions.xml",
     "php82Extensions.zip", "php82Extensions.sockets",
     "composer", "nginx", "nodejs_22", "npm",
-    "python311Packages.supervisor",
+    "supervisor",
     "shadow",
 ]
 
