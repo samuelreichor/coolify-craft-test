@@ -25,6 +25,3 @@ RUN mkdir -p storage && \
 USER www-data
 
 EXPOSE 9000
-
-# Start php-fpm
-CMD ["php-fpm", "-F"]
