@@ -4,8 +4,8 @@ services:
   # PHP Service (Craft CMS Application)
   app:
     build:
-      context: ./coolify/php
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: coolify/php/Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-craft}-app
     restart: unless-stopped
     working_dir: /app
@@ -31,7 +31,7 @@ services:
   # Nginx Service (Webserver)
   web:
     build:
-      context: ./nginx
+      context: ./coolify/nginx
       dockerfile: Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-craft}-web
     restart: unless-stopped
