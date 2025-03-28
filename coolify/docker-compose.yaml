@@ -1,0 +1,27 @@
+services: 
+
+  nginx:
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+    build:
+      context: ./nginx
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+      
+  php:
+    container_name: php
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+    build:
+      context: ./php
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
