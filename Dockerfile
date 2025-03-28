@@ -2,6 +2,7 @@ ARG PHP_VERSION=8.2
 FROM ghcr.io/craftcms/image:${PHP_VERSION}
 
 WORKDIR /app
+USER root
 
 # Composer installieren
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -12,13 +13,13 @@ RUN composer install --prefer-dist --no-dev --no-interaction --no-progress --opt
     && composer clear-cache
 
 # App-Code kopieren mit richtiger Ownership
-COPY --chown=www-data:www-data . .
+COPY --chown=root:root . .
 
 # Nur storage beschreibbar machen
 RUN mkdir -p storage && \
-    chown -R www-data:www-data storage && \
+    chown -R root:root storage && \
     chmod -R 775 storage
 
-USER www-data
+
 
 EXPOSE 9000
