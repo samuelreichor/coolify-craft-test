@@ -45,7 +45,6 @@ cmds = [
     "php craft migrate/all --interactive=0",
     "php craft project-config/apply --interactive=0",
 ]
-# dependsOn = ["build"] # Nixpacks macht dies implizit
 
 [start]
 # Verwendet unser Start-Skript, das Supervisor startet
@@ -54,15 +53,12 @@ cmd = "/assets/start.sh"
 # --- Eingebettete Konfigurationsdateien und Skripte ---
 [staticAssets]
 
-# Start-Skript, das nur Supervisor startet
 "start.sh" = '''
 #!/bin/bash
-# Startet Supervisor, der Nginx, PHP-FPM (und ggf. Queue Worker) managt
 echo "Starting Supervisor..."
-exec /usr/bin/supervisord -c /etc/supervisord.conf -n
+exec supervisord -c /etc/supervisord.conf -n
 '''
 
-# Supervisor Hauptkonfiguration (Ähnlich Laravel-Beispiel)
 "supervisord.conf" = '''
 [unix_http_server]
 file=/tmp/supervisor.sock ; Kommunikation via Unix socket
@@ -88,7 +84,6 @@ serverurl=unix:///tmp/supervisor.sock ; Verbindung zum Server via Socket
 files = /etc/supervisor/conf.d/*.conf ; Lädt alle Worker-Konfigurationen
 '''
 
-# Supervisor Worker: Nginx
 "worker-nginx.conf" = '''
 [program:nginx]
 command=nginx -g 'daemon off;' ; Startet Nginx im Vordergrund (von Supervisor gemanagt)
@@ -99,7 +94,6 @@ stdout_logfile=/var/log/supervisor/nginx.log
 stderr_logfile=/var/log/supervisor/nginx.error.log
 '''
 
-# Supervisor Worker: PHP-FPM
 "worker-phpfpm.conf" = '''
 [program:php-fpm]
 command=php-fpm -c /etc/ -y /etc/php-fpm.conf -F ; Startet PHP-FPM im Vordergrund
@@ -125,7 +119,6 @@ stderr_logfile=/var/log/supervisor/php-fpm.error.log
 #stderr_logfile=/var/log/supervisor/craft-queue.error.log
 #'''
 
-# PHP-FPM Pool Konfiguration (Hört auf TCP Port 9000)
 "php-fpm.conf" = '''
 [www]
 listen = 127.0.0.1:9000
@@ -145,7 +138,6 @@ clear_env = no
 catch_workers_output = yes
 '''
 
-# Nginx Konfiguration für Craft CMS (Kein Template, statisch)
 "nginx.conf" = '''
 user www-data www-data;
 worker_processes auto; # Automatisch an CPU-Kerne anpassen
