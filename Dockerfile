@@ -1,5 +1,5 @@
 ARG PHP_VERSION=8.2
-FROM ghcr.io/craftcms/image:${PHP_VERSION}
+FROM jkaninda/nginx-php-fpm:${PHP_VERSION}
 
 WORKDIR /app
 
