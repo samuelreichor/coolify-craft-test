@@ -1,10 +1,17 @@
+version: '3.8'
+
 services:
+  # PHP Service (Craft CMS Application)
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: coolify/php/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-app
+    restart: unless-stopped
+    working_dir: /app
     volumes:
       - .:/app
+      - craft_storage:/app/storage
     environment:
       CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production} # 'dev', 'staging', 'production'
       CRAFT_DB_DRIVER: ${CRAFT_DB_DRIVER:-mysql}
@@ -18,3 +25,30 @@ services:
       CRAFT_APP_ID: ${CRAFT_APP_ID}
       PRIMARY_SITE_URL: ${CRAFT_PRIMARY_SITE_URL}
       CRAFT_ALLOW_SUPERUSER: ${CRAFT_ALLOW_SUPERUSER:-1}
+    networks:
+      - craftnet
+
+  # Nginx Service (Webserver)
+  web:
+    build:
+      context: ./coolify/nginx
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-craft}-web
+    restart: unless-stopped
+    ports:
+      - "${CRAFT_PORT:-8080}:80"
+    volumes:
+      - .:/app
+    depends_on:
+      - app
+    networks:
+      - craftnet
+
+# Netzwerke
+networks:
+  craftnet:
+    driver: bridge
+
+# Volumes
+volumes:
+  craft_storage:

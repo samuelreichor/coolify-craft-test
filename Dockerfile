@@ -1,28 +1,36 @@
-FROM serversideup/php:8.2-fpm-nginx
+ARG PHP_VERSION=8.2
+FROM php:${PHP_VERSION}-fpm-alpine
 
-ENV PHP_OPCACHE_ENABLE=1
+WORKDIR /app
 
-USER root
-
-# PHP-Erweiterungen installieren
-RUN apt-get update && apt-get install -y \
-    libicu-dev \
-    nodejs \
-    unzip \
+RUN apk update && apk add --no-cache \
     git \
-    && docker-php-ext-install bcmath intl
+    curl \
+    libzip-dev \
+    libpng-dev \
+    icu-dev \
+    zlib-dev \
+    unzip \
+    oniguruma-dev \
+    && docker-php-ext-install pdo pdo_mysql intl zip
 
-# Node installieren (optional, falls nicht im Image enthalten)
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get install -y nodejs
+# Composer installieren
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Code ins Image kopieren
-COPY --chown=www-data:www-data . /var/www/html
+# Composer files zuerst (für besseren Cache)
+COPY composer.json composer.lock* ./
+
+RUN composer install --prefer-dist --no-dev --no-interaction --no-progress --optimize-autoloader \
+    && composer clear-cache
+
+# Jetzt den restlichen Code
+COPY . .
+
+# Schreibrechte für Craft
+RUN mkdir -p storage config/project && \
+    chown -R www-data:www-data storage config && \
+    chmod -R 775 storage config
 
 USER www-data
 
-# Frontend-Tools und Composer
-RUN npm install
-RUN npm run build
-
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+EXPOSE 9000
