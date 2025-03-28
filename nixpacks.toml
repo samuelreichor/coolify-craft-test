@@ -1,11 +1,6 @@
-# nixpacks.toml
-# Angepasste Konfiguration für Craft CMS mit Supervisor und Static Assets
-
 providers = ["php", "node"]
 
 [phases.setup]
-# Benötigte Nix-Pakete: PHP, Extensions, Composer, Nginx, Node, Supervisor, Tools
-# Stelle sicher, dass die PHP-Version (hier 8.3) korrekt ist.
 pkgs = [
     "php83",
     "php83Extensions.bcmath", "php83Extensions.ctype", "php83Extensions.curl",
@@ -14,61 +9,40 @@ pkgs = [
     "php83Extensions.pdo", "php83Extensions.pdo_mysql", # Oder pdo_pgsql
     "php83Extensions.simplexml", "php83Extensions.tokenizer", "php83Extensions.xml",
     "php83Extensions.zip", "php83Extensions.sockets",
-    # Imagick (optional)
-    "php83Extensions.imagick", "imagemagick",
-    # Tools & Server
     "composer", "nginx", "nodejs_22", "npm",
-    # Supervisor (Python-basiert)
     "python311Packages.supervisor",
-    # Für chown / User Management, falls www-data nicht existiert
     "shadow",
 ]
 
 [phases.install]
-# Composer- und NPM-Abhängigkeiten installieren
 cmds = [
     "composer install --no-dev --no-progress --optimize-autoloader",
-    # Frontend-Abhängigkeiten (falls benötigt)
     "npm install",
-    # Erstelle www-data User/Gruppe, falls nicht vorhanden (überspringt Fehler, falls existiert)
     "groupadd -g 82 www-data || true",
     "useradd -u 82 -g www-data -s /sbin/nologin www-data || true"
 ]
 
 [phases.build]
-# Vorbereitungen für die Laufzeitumgebung und Build-Schritte
 cmds = [
-    # Verzeichnisse erstellen (Logs, Supervisor, Craft Storage)
     "mkdir -p /var/log/supervisor", # Für Supervisor-Logs
     "mkdir -p /app/storage/logs", # Für Craft Logs
     "mkdir -p /app/storage/runtime", # Für Craft Runtime-Dateien (Cache, etc.)
     "mkdir -p /etc/supervisor/conf.d/",
 
-    # Kopiere Konfigurationsdateien von [staticAssets] in den Container
     "cp /assets/supervisord.conf /etc/supervisord.conf",
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
     "cp /assets/nginx.conf /etc/nginx.conf", # Unsere statische Nginx-Config
     "cp /assets/php-fpm.conf /etc/php-fpm.conf", # Unsere PHP-FPM Config
 
-    # Start-Skript ausführbar machen
     "chmod +x /assets/start.sh",
 
-    # Berechtigungen setzen - Wichtig für Logs und Craft Storage/Runtime
-    # Stelle sicher, dass der Webserver/PHP-FPM-User (www-data) Schreibrechte hat
-    "chown -R www-data:www-data /var/log /app/storage /etc/supervisor", # /etc/supervisor hinzugefügt
-
-    # Frontend-Assets bauen (falls benötigt)
-    "npm run build",
+    "chown -R www-data:www-data /var/log /app/storage /etc/supervisor"
 ]
 
 [phases.postBuild]
-# Befehle, die nach dem Build, aber vor dem Start ausgeführt werden (z.B. Migrationen)
-# Diese benötigen oft Zugriff auf Umgebungsvariablen/Secrets (DB-Verbindung)
 cmds = [
     "php craft migrate/all --interactive=0",
     "php craft project-config/apply --interactive=0",
-    # Keine Laravel-spezifischen Cache-Befehle hier
-    # Kein 'queue:work' hier, das übernimmt Supervisor
 ]
 # dependsOn = ["build"] # Nixpacks macht dies implizit
 
