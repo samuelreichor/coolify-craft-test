@@ -1,15 +1,16 @@
 ARG PHP_VERSION=8.2
 FROM jkaninda/nginx-php-fpm:${PHP_VERSION}
 
-WORKDIR /app
-
-USER root
-
 # Composer installieren
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+COPY . /var/www/html
+
+WORKDIR /var/www/html
+
+USER root
+
 # Composer dependencies
-COPY composer.json composer.lock* ./
 RUN composer install --prefer-dist --no-dev --no-interaction --no-progress --optimize-autoloader \
     && composer clear-cache
 

@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - .:/app
+      - ./:/var/www/html
       - craft_storage:/app/storage
     environment:
       CRAFT_ENVIRONMENT: ${CRAFT_ENVIRONMENT:-production}
