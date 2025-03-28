@@ -48,9 +48,6 @@ services:
       PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME:-60}
       PHP_UPLOAD_MAX_FILESIZE: ${PHP_UPLOAD_MAX_FILESIZE:-64M}
       PHP_POST_MAX_SIZE: ${PHP_POST_MAX_SIZE:-64M}
-    depends_on:
-      - db
-      - redis # Entfernen, wenn Redis nicht verwendet wird
     networks:
       - craftnet
 
@@ -69,40 +66,6 @@ services:
       - .:/app
     depends_on:
       - app
-    networks:
-      - craftnet
-
-  # Datenbank Service (PostgreSQL)
-  db:
-    image: postgres:15-alpine # Oder mariadb:latest für MySQL/MariaDB
-    container_name: ${COMPOSE_PROJECT_NAME:-craft}-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_DATABASE:-craftdb}
-      POSTGRES_USER: ${DB_USER:-craftuser}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-craftpassword} # Muss mit 'app' Service übereinstimmen
-      # Für MariaDB wären es:
-      # MARIADB_DATABASE: ${DB_DATABASE:-craftdb}
-      # MARIADB_USER: ${DB_USER:-craftuser}
-      # MARIADB_PASSWORD: ${DB_PASSWORD:-craftpassword}
-      # MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword} # Setze ein sicheres Root-Passwort
-    volumes:
-      # Persistenter Volume für Datenbankdaten
-      - db_data:/var/lib/postgresql/data
-      # Für MariaDB:
-      # - db_data:/var/lib/mysql
-    networks:
-      - craftnet
-    # Exponiere den Port nur, wenn du direkt von deinem Host darauf zugreifen musst (Debugging)
-    # ports:
-    #   - "5432:5432" # Für PostgreSQL
-    #   - "3306:3306" # Für MariaDB
-
-  # Redis Service (Optional, für Caching)
-  redis:
-    image: redis:alpine
-    container_name: ${COMPOSE_PROJECT_NAME:-craft}-redis
-    restart: unless-stopped
     networks:
       - craftnet
 

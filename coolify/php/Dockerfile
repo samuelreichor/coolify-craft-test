@@ -6,37 +6,8 @@ WORKDIR /app
 # Installiere Systemabhängigkeiten für PHP-Erweiterungen
 # (imagemagick für Bildmanipulation, optional aber oft nützlich)
 RUN apk update && apk add --no-cache \
-    # Für DB (pgsql oder mysql)
-    postgresql-dev \
-    # mysql-client \ # Nur wenn MySQL/MariaDB verwendet wird
-    # Für Bilder (gd und/oder imagick)
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    imagemagick-dev \
-    imagemagick \
-    # Für Intl
-    icu-dev \
-    # Für Zip Archive
-    zip \
-    unzip \
-    libzip-dev \
-    # Weitere nützliche Tools
     git \
-    curl \
-    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install imagick \
-    && docker-php-ext-enable imagick \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        gd \
-        intl \
-        opcache \
-        pdo \
-        pdo_pgsql \      # oder pdo_mysql
-        zip \
-    # Räume Build-Abhängigkeiten auf
-    && apk del .build-deps
+    curl
 
 # Installiere Composer global
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
