@@ -1,0 +1,22 @@
+dateModified: 1743155680
+email:
+  fromEmail: sam@gmail.com
+  fromName: Coolify
+  transportType: craft\mail\transportadapters\Sendmail
+meta:
+  __names__:
+    06ad5f1e-770a-4155-826b-cf98e6908551: Coolify # Coolify
+    a53f0afa-3356-4028-aa21-3368fc5ac7f0: Coolify # Coolify
+system:
+  edition: solo
+  live: true
+  name: Coolify
+  schemaVersion: 5.6.0.2
+  timeZone: America/Los_Angeles
+users:
+  allowPublicRegistration: false
+  defaultGroup: null
+  photoSubpath: null
+  photoVolumeUid: null
+  require2fa: false
+  requireEmailVerification: true

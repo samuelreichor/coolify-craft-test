@@ -1,0 +1,8 @@
+baseUrl: $PRIMARY_SITE_URL
+handle: default
+hasUrls: true
+language: en-US
+name: Coolify
+primary: true
+siteGroup: 06ad5f1e-770a-4155-826b-cf98e6908551 # Coolify
+sortOrder: 1
