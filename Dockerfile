@@ -20,6 +20,4 @@ RUN mkdir -p storage && \
     chown -R root:root storage && \
     chmod -R 775 storage
 
-
-
 EXPOSE 9000
