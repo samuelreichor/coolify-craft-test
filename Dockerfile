@@ -2,6 +2,7 @@ ARG PHP_VERSION=8.2
 FROM ghcr.io/craftcms/image:${PHP_VERSION}
 
 WORKDIR /app
+
 USER root
 
 # Composer installieren
@@ -12,12 +13,18 @@ COPY composer.json composer.lock* ./
 RUN composer install --prefer-dist --no-dev --no-interaction --no-progress --optimize-autoloader \
     && composer clear-cache
 
-# App-Code kopieren mit richtiger Ownership
-COPY --chown=root:root . .
+# App-Code kopieren
+COPY --chown=www-data:www-data . .
 
-# Nur storage beschreibbar machen
+# Speicher-Verzeichnis vorbereiten
 RUN mkdir -p storage && \
-    chown -R root:root storage && \
+    chown -R www-data:www-data storage && \
     chmod -R 775 storage
 
+# Jetzt als www-data weiterarbeiten
+USER www-data
+
 EXPOSE 9000
+
+# Start php-fpm
+CMD ["php-fpm", "-F"]
