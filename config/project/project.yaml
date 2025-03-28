@@ -1,4 +1,4 @@
-dateModified: 1743155680
+dateModified: 1743355557
 email:
   fromEmail: sam@gmail.com
   fromName: Coolify
@@ -6,7 +6,13 @@ email:
 meta:
   __names__:
     06ad5f1e-770a-4155-826b-cf98e6908551: Coolify # Coolify
+    91459a15-28e3-4266-bf0b-a7103de4b3dd: 'Public Schema' # Public Schema
     a53f0afa-3356-4028-aa21-3368fc5ac7f0: Coolify # Coolify
+plugins:
+  vite:
+    edition: standard
+    enabled: true
+    schemaVersion: 1.0.0
 system:
   edition: solo
   live: true

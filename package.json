@@ -1,0 +1,20 @@
+{
+  "name": "coolify-craft-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "mitt": "^3.0.1"
+  },
+  "devDependencies": {
+    "vite": "5.4.11",
+    "vite-plugin-mkcert": "^1.17.8"
+  }
+}
