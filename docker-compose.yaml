@@ -31,20 +31,6 @@ services:
       - craftnet
 
   # Nginx Service (Webserver)
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile-nginx
-    container_name: ${COMPOSE_PROJECT_NAME:-craft}-web
-    restart: unless-stopped
-    ports:
-      - "${CRAFT_PORT:-8080}:80"
-    volumes:
-      - .:/app
-    depends_on:
-      - app
-    networks:
-      - craftnet
 
   # MySQL Datenbank-Service
   db:
