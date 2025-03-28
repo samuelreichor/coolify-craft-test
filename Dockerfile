@@ -6,19 +6,18 @@ WORKDIR /app
 # Composer installieren
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Composer files zuerst (für besseren Cache)
+# Composer dependencies
 COPY composer.json composer.lock* ./
-
 RUN composer install --prefer-dist --no-dev --no-interaction --no-progress --optimize-autoloader \
     && composer clear-cache
 
-# Jetzt den restlichen Code
-COPY . .
+# App-Code kopieren mit richtiger Ownership
+COPY --chown=www-data:www-data . .
 
-# Schreibrechte für Craft
-RUN mkdir -p storage config/project && \
-    chown -R www-data:www-data storage config && \
-    chmod -R 775 storage config
+# Nur storage beschreibbar machen
+RUN mkdir -p storage && \
+    chown -R www-data:www-data storage && \
+    chmod -R 775 storage
 
 USER www-data
 
