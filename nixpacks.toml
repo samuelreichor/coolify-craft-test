@@ -1,4 +1,4 @@
-providers = ["php", "node"]
+providers = ["php"]
 
 [phases.setup]
 pkgs = [
