@@ -41,6 +41,7 @@ cmds = [
 
 [phases.postBuild]
 cmds = [
+    "composer install --no-dev --no-progress --optimize-autoloader",
     "php craft migrate/all --interactive=0",
     "php craft project-config/apply --interactive=0",
 ]
