@@ -23,5 +23,3 @@ RUN mkdir -p storage && \
 
 # Jetzt als www-data weiterarbeiten
 USER www-data
-
-EXPOSE 9000
