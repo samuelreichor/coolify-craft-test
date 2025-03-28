@@ -1,0 +1,266 @@
+# nixpacks.toml
+# Angepasste Konfiguration für Craft CMS mit Supervisor und Static Assets
+
+providers = ["php", "node"]
+
+[phases.setup]
+# Benötigte Nix-Pakete: PHP, Extensions, Composer, Nginx, Node, Supervisor, Tools
+# Stelle sicher, dass die PHP-Version (hier 8.3) korrekt ist.
+pkgs = [
+    "php83",
+    "php83Extensions.bcmath", "php83Extensions.ctype", "php83Extensions.curl",
+    "php83Extensions.dom", "php83Extensions.gd", "php83Extensions.iconv",
+    "php83Extensions.intl", "php83Extensions.mbstring", "php83Extensions.openssl",
+    "php83Extensions.pdo", "php83Extensions.pdo_mysql", # Oder pdo_pgsql
+    "php83Extensions.simplexml", "php83Extensions.tokenizer", "php83Extensions.xml",
+    "php83Extensions.zip", "php83Extensions.sockets",
+    # Imagick (optional)
+    "php83Extensions.imagick", "imagemagick",
+    # Tools & Server
+    "composer", "nginx", "nodejs_22", "npm",
+    # Supervisor (Python-basiert)
+    "python311Packages.supervisor",
+    # Für chown / User Management, falls www-data nicht existiert
+    "shadow",
+]
+
+[phases.install]
+# Composer- und NPM-Abhängigkeiten installieren
+cmds = [
+    "composer install --no-dev --no-progress --optimize-autoloader",
+    # Frontend-Abhängigkeiten (falls benötigt)
+    "npm install",
+    # Erstelle www-data User/Gruppe, falls nicht vorhanden (überspringt Fehler, falls existiert)
+    "groupadd -g 82 www-data || true",
+    "useradd -u 82 -g www-data -s /sbin/nologin www-data || true"
+]
+
+[phases.build]
+# Vorbereitungen für die Laufzeitumgebung und Build-Schritte
+cmds = [
+    # Verzeichnisse erstellen (Logs, Supervisor, Craft Storage)
+    "mkdir -p /var/log/supervisor", # Für Supervisor-Logs
+    "mkdir -p /app/storage/logs", # Für Craft Logs
+    "mkdir -p /app/storage/runtime", # Für Craft Runtime-Dateien (Cache, etc.)
+    "mkdir -p /etc/supervisor/conf.d/",
+
+    # Kopiere Konfigurationsdateien von [staticAssets] in den Container
+    "cp /assets/supervisord.conf /etc/supervisord.conf",
+    "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
+    "cp /assets/nginx.conf /etc/nginx.conf", # Unsere statische Nginx-Config
+    "cp /assets/php-fpm.conf /etc/php-fpm.conf", # Unsere PHP-FPM Config
+
+    # Start-Skript ausführbar machen
+    "chmod +x /assets/start.sh",
+
+    # Berechtigungen setzen - Wichtig für Logs und Craft Storage/Runtime
+    # Stelle sicher, dass der Webserver/PHP-FPM-User (www-data) Schreibrechte hat
+    "chown -R www-data:www-data /var/log /app/storage /etc/supervisor", # /etc/supervisor hinzugefügt
+
+    # Frontend-Assets bauen (falls benötigt)
+    "npm run build",
+]
+
+[phases.postBuild]
+# Befehle, die nach dem Build, aber vor dem Start ausgeführt werden (z.B. Migrationen)
+# Diese benötigen oft Zugriff auf Umgebungsvariablen/Secrets (DB-Verbindung)
+cmds = [
+    "php craft migrate/all --interactive=0",
+    "php craft project-config/apply --interactive=0",
+    # Keine Laravel-spezifischen Cache-Befehle hier
+    # Kein 'queue:work' hier, das übernimmt Supervisor
+]
+# dependsOn = ["build"] # Nixpacks macht dies implizit
+
+[start]
+# Verwendet unser Start-Skript, das Supervisor startet
+cmd = "/assets/start.sh"
+
+# --- Eingebettete Konfigurationsdateien und Skripte ---
+[staticAssets]
+
+# Start-Skript, das nur Supervisor startet
+"start.sh" = '''
+#!/bin/bash
+# Startet Supervisor, der Nginx, PHP-FPM (und ggf. Queue Worker) managt
+echo "Starting Supervisor..."
+exec /usr/bin/supervisord -c /etc/supervisord.conf -n
+'''
+
+# Supervisor Hauptkonfiguration (Ähnlich Laravel-Beispiel)
+"supervisord.conf" = '''
+[unix_http_server]
+file=/tmp/supervisor.sock ; Kommunikation via Unix socket
+
+[supervisord]
+logfile=/var/log/supervisor/supervisord.log ; Haupt-Logdatei
+logfile_maxbytes=50MB
+logfile_backups=10
+loglevel=info
+pidfile=/tmp/supervisord.pid
+nodaemon=false ; Wichtig: Muss im Vordergrund laufen, damit der Container nicht stoppt
+minfds=1024
+minprocs=200
+user=root ; Supervisord selbst läuft als root, startet Kindprozesse aber ggf. anders
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=unix:///tmp/supervisor.sock ; Verbindung zum Server via Socket
+
+[include]
+files = /etc/supervisor/conf.d/*.conf ; Lädt alle Worker-Konfigurationen
+'''
+
+# Supervisor Worker: Nginx
+"worker-nginx.conf" = '''
+[program:nginx]
+command=nginx -g 'daemon off;' ; Startet Nginx im Vordergrund (von Supervisor gemanagt)
+autostart=true
+autorestart=true
+priority=10
+stdout_logfile=/var/log/supervisor/nginx.log
+stderr_logfile=/var/log/supervisor/nginx.error.log
+'''
+
+# Supervisor Worker: PHP-FPM
+"worker-phpfpm.conf" = '''
+[program:php-fpm]
+command=php-fpm -c /etc/ -y /etc/php-fpm.conf -F ; Startet PHP-FPM im Vordergrund
+autostart=true
+autorestart=true
+priority=5
+stdout_logfile=/var/log/supervisor/php-fpm.log
+stderr_logfile=/var/log/supervisor/php-fpm.error.log
+'''
+
+# Supervisor Worker: Craft Queue Worker (Optional - Einkommentieren, wenn benötigt)
+#"worker-craft-queue.conf" = '''
+#[program:craft-queue]
+#process_name=%(program_name)s_%(process_num)02d
+#command=php /app/craft queue/listen --verbose=1 --timeout=0 ; Startet den Craft Queue Listener
+#autostart=true
+#autorestart=true
+#user=www-data ; Als www-data ausführen
+#numprocs=1 ; Anzahl der Worker-Prozesse
+#startsecs=0
+#stopwaitsecs=3600 ; Max. Zeit für Graceful Shutdown
+#stdout_logfile=/var/log/supervisor/craft-queue.log
+#stderr_logfile=/var/log/supervisor/craft-queue.error.log
+#'''
+
+# PHP-FPM Pool Konfiguration (Hört auf TCP Port 9000)
+"php-fpm.conf" = '''
+[www]
+listen = 127.0.0.1:9000
+;listen = /var/run/php/php-fpm.sock ; Alternative: Unix Socket
+user = www-data
+group = www-data
+;listen.owner = www-data ; Nur für Socket nötig
+;listen.group = www-data ; Nur für Socket nötig
+pm = dynamic
+pm.max_children = 50
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+pm.start_servers = 10
+;pm.process_idle_timeout = 10s;
+;pm.max_requests = 500
+clear_env = no
+catch_workers_output = yes
+'''
+
+# Nginx Konfiguration für Craft CMS (Kein Template, statisch)
+"nginx.conf" = '''
+user www-data www-data;
+worker_processes auto; # Automatisch an CPU-Kerne anpassen
+pid /run/nginx.pid;
+# include /etc/nginx/modules-enabled/*.conf; # Normalerweise nicht in Containern nötig
+
+events {
+    worker_connections 768;
+    # multi_accept on;
+}
+
+http {
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    # server_tokens off;
+
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Logging
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    # Gzip Compression (Optional)
+    # gzip on;
+    # gzip_disable "msie6";
+    # gzip_vary on;
+    # gzip_proxied any;
+    # gzip_comp_level 6;
+    # gzip_buffers 16 8k;
+    # gzip_http_version 1.1;
+    # gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    # Haupt-Server-Block
+    server {
+        # Hört auf den internen Port, den Coolify/Nixpacks bereitstellt (meist 80)
+        listen ${PORT:-80};
+
+        server_name _; # Platzhalter, Coolify managt externen Hostnamen
+
+        # Pfad zum 'web' Verzeichnis von Craft
+        root /app/web;
+        index index.php;
+
+        charset utf-8;
+
+        # Craft CMS Pretty URLs / Routing
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+
+        # Statische Dateien direkt ausliefern (Optional Caching)
+        location ~* \.(?:css|js|map|jpe?g|gif|png|ico|svg|woff2?)$ {
+          expires 7d;
+          access_log off;
+          add_header Cache-Control "public";
+        }
+
+        # PHP-FPM Verarbeitung
+        location ~ \.php$ {
+            try_files $uri =404;
+            fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+            # Übergabe an PHP-FPM via TCP Port (wie in php-fpm.conf definiert)
+            fastcgi_pass 127.0.0.1:9000;
+            # Falls PHP-FPM Socket verwendet wird:
+            # fastcgi_pass unix:/var/run/php/php-fpm.sock;
+
+            fastcgi_index index.php;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param PATH_INFO $fastcgi_path_info;
+            fastcgi_read_timeout 300s; # Längeres Timeout
+            fastcgi_buffer_size 128k;
+            fastcgi_buffers 4 256k;
+            fastcgi_busy_buffers_size 256k;
+        }
+
+        # Sicherheitsregeln für Craft
+        location ~ /\. { deny all; }
+        location ~ /composer\.(?:json|lock)$ { deny all; }
+        location ~ ^/config/ { deny all; }
+        location ~ ^/storage/ { deny all; }
+        location ~ ^/templates/ { deny all; }
+        location ~ ^/vendor/ { deny all; }
+        location = /robots.txt { access_log off; log_not_found off; }
+        location = /favicon.ico { access_log off; log_not_found off; }
+    }
+}
+'''
