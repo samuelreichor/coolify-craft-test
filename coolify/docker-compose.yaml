@@ -4,7 +4,7 @@ services:
   # PHP Service (Craft CMS Application)
   app:
     build:
-      context: ./app/coolify/php
+      context: ./coolify/php
       dockerfile: Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-craft}-app
     restart: unless-stopped
