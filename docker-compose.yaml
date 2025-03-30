@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mysql
+    environment:
+      MYSQL_DATABASE: db # Database name
+      MYSQL_USER: db # Database user
+      MYSQL_PASSWORD: db # Database password
+      MYSQL_ROOT_PASSWORD: root # Root password (credentials only available in the container)
+    volumes:
+      - db_data:/var/lib/mysql # Maps the 'db_data' named volume to MySQL's data directory
+    healthcheck: # Configures a health check for the database
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 1s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: # Specifies how to build the Docker image
+      context: .
+      dockerfile: ./.coolify/Dockerfile # Specifies the path to the Dockerfile
+      args: # Passes build arguments to the Dockerfile
+        - php_version=8.2 # Sets the PHP version
+        - node_version=22 # Sets the Node.js version
+    depends_on:
+      db:
+        condition: service_healthy # Ensures the 'web' service starts only after the 'db' service is healthy
+
+volumes:
+  db_data: # Defines the 'db_data' volume for persistent database storage (database is not deleted during deploy)
